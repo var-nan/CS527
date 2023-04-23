@@ -3,7 +3,7 @@ package edu.iastate.cs527.bean;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class NodeBit<T extends Number> {
+public class Edge<T extends Number> {
 
     // TODO use readwrite locks?
     // TODO create constructor
@@ -13,18 +13,17 @@ public class NodeBit<T extends Number> {
     tag - tag bit
     nodeAddr - address of the node (basically the node itself).
      */
-    public AtomicBoolean flagged;
+    public AtomicBoolean flagged; // edit: changing atomic boolean to boolaen
     public AtomicBoolean tagged;
-    public AtomicReference<NodeLF<T>> nodeAddr;
+    public NodeLF<T> nodeAddr; // does nodeAddr has to be AtomicReference?
 
-    public NodeBit(AtomicReference<NodeLF<T>> nodeAddr) {
+    public Edge(NodeLF<T> nodeAddr) {
         this.flagged = new AtomicBoolean(false);
         this.tagged = new AtomicBoolean(false);
         this.nodeAddr = nodeAddr;
     }
 
     public boolean isFlagged() {
-        //
         return flagged.get();
     }
 
@@ -41,11 +40,11 @@ public class NodeBit<T extends Number> {
         return this.tagged.compareAndSet(false, true);
     }
 
-    public AtomicReference<NodeLF<T>> getNodeAddr() {
+    public NodeLF<T> getNodeAddr() {
         return nodeAddr;
     }
 
-    public void setNodeAddr(AtomicReference<NodeLF<T>> nodeAddr) {
+    public void setNodeAddr(NodeLF<T> nodeAddr) {
         this.nodeAddr = nodeAddr;
     }
 }

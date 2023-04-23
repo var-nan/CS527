@@ -3,50 +3,44 @@ package edu.iastate.cs527.bean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class NodeLF<T extends Number>{
-    public T key;
-    public AtomicReference<NodeBit<T>> left;
-    public AtomicReference<NodeBit<T>> right;
+    public final T key; // TODO make it final.
+    public AtomicReference<Edge<T>> left = new AtomicReference<>();
+    public AtomicReference<Edge<T>> right = new AtomicReference<>();
 
     // constructor
-
-    public NodeLF() {
-    }
 
     public NodeLF(T key) {
         this.key = key; // TODO connect left and right childs
     }
 
 
-    public NodeLF(T key, NodeBit<T> left, NodeBit<T> right) {
+    public NodeLF(T key, Edge<T> left, Edge<T> right) {
         this.key = key;
         this.left.set(left);
+        //this.left = new AtomicReference<>(left);
         this.right.set(right);
     }
 
-    // TODO make updates as atomic updates.
+    // TODO make updates as atomic updates ?
 
 
     public T getKey() {
         return key;
     }
 
-    public void setKey(T key) {
-        this.key = key;
-    }
-
-    public NodeBit<T> getLeft() {
+    public Edge<T> getLeft() {
         return left.get();
     }
 
-    public boolean setLeftCAS(NodeBit<T> left, NodeBit<T> newLeft) {
+    public boolean setLeftCAS(Edge<T> left, Edge<T> newLeft) {
         return this.left.compareAndSet( left, newLeft);
     }
 
-    public NodeBit<T> getRight() {
+    public Edge<T> getRight() {
         return right.get();
     }
 
-    public void setRightCAS(NodeBit<T> right, NodeBit<T> newRight) {
+    public void setRightCAS(Edge<T> right, Edge<T> newRight) {
         this.right.compareAndSet(right, newRight);
     }
 }

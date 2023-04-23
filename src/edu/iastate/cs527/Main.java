@@ -15,6 +15,7 @@ public class Main {
         //test(new SerialBST<>(500));
         //test(new LockBST<>(500));
 
+        // TODO Turn off GC.
         BSTThreadPool bstThreadPool = new BSTThreadPool(4,4,
                 100000,
                 TimeUnit.MILLISECONDS,new LinkedBlockingDeque<>(10));

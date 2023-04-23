@@ -3,7 +3,7 @@ package edu.iastate.cs527.impl;
 import edu.iastate.cs527.BST;
 import edu.iastate.cs527.bean.Mode;
 import edu.iastate.cs527.bean.NodeLF;
-import edu.iastate.cs527.bean.NodeBit;
+import edu.iastate.cs527.bean.Edge;
 import edu.iastate.cs527.bean.SeekRecord;
 
 import java.util.List;
@@ -15,22 +15,26 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     // TODO CREATE ROOT NODE.
     NodeLF<T> root;
-
     NodeLF<T> R, S;
 
 
-    public LockFreeBST(T r, T s) {
+    public LockFreeBST(T r, T s, T rootKey) {
         //R.left = S;
         R = new NodeLF<>(r);
         S = new NodeLF<>(s);
-        R.left = S;
-
-        Number n = Integer.MAX_VALUE;
-
+        Edge<T> rightEdgeR = new Edge<>(new NodeLF<>(r));
+        R.right = new AtomicReference<>(rightEdgeR); // NOTE: no need to initialize R.right and S.right.
+        Edge<T> leftEdgeR = new Edge<>(new NodeLF<>(s));
+        R.left = new AtomicReference<>(leftEdgeR);
+        var rightEdgeL = new Edge<T>(new NodeLF<>(s));
+        var leftEdgeL = new Edge<T>(new NodeLF<>(s));
+        S.right = new AtomicReference<>(rightEdgeL);
+        S.left = new AtomicReference<>(leftEdgeL);
+        // TODO S.left should be root node. S should be internal node.
+        var rootEdge = new Edge<T>(new NodeLF<>(rootKey));
 
         root = new NodeLF<>(r);
         //root.setLeftCAS();
-
     }
 
     @Override
@@ -38,7 +42,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         // get seek record, and check if node is null or not.
         // getLeaf might return null.
         var seekRecord = seek(x);
-        var leaf = seekRecord.getLeaf().get();
+        var leaf = seekRecord.getLeaf();
         if (leaf != null) {
             var key = leaf.getKey();
             return equals(key, x);
@@ -47,7 +51,10 @@ public class LockFreeBST<T extends Number> implements BST<T> {
     }
 
     @Override
-    public List<T> traverse(){return null;}
+    public List<T> traverse(){
+        // TODO done by single thread (preferably main).
+        return null;
+    }
 
     @Override
     public boolean insert(T key) {
@@ -57,50 +64,59 @@ public class LockFreeBST<T extends Number> implements BST<T> {
             var seekRecord = seek(key); // obtain seek record.
 
             // if key is already present, return false.
-            if (equals(seekRecord.getLeaf().get().getKey(), key))
+            if (equals(seekRecord.getLeaf().getKey(), key))
                 return false;
             else {
                 // key is not present in tree.
-                // extract parent and child nodes.
-                var parent = seekRecord.getParent();
-                var leaf = seekRecord.getLeaf();
+                // extract parent and child nodes
+                NodeLF<T> parent = seekRecord.getParent();
+                NodeLF<T> leaf = seekRecord.getLeaf();
 
-                NodeBit<T> child; // todo - atomic reference.
-                if (lessThan(parent.get().getKey(), key))
-                    child = parent.get().getLeft();
-                else child =  parent.get().getRight();
+                AtomicReference<Edge<T>> childEdge;
+                if (lessThan(parent.getKey(), key))
+                    childEdge = parent.left;
+                else childEdge =  parent.right;
 
                 // create new internal node and a new leaf node,
-                var newLeaf = new NodeLF<T>(key, null, null);
-                var newInternal = new NodeLF<T>();
+                NodeLF<T> newLeaf;
+                NodeLF<T> newInternal;
 
-                var newNodebit = new NodeBit<>(new AtomicReference<>(newLeaf));
-
-                // if parent key is less than
-                if (lessThan(key, leaf.get().getKey())){
+                //var newNodebit = new Edge<>(newLeaf);
+                // this step is to get the corresponding edge for CAS.
+                if (lessThan(key, leaf.getKey())){
                     // key is less than leaf key,
                     // new node should be (key, left = newNode, right = oldchild)
-                    newInternal = new NodeLF<T>(leaf.get().getKey(),newNodebit , child);
+                    newLeaf = new NodeLF<>(key);
+                    var sibling = new NodeLF<>(leaf.getKey());
+                    newInternal = new NodeLF<>(leaf.getKey(), new Edge<>(newLeaf), new Edge<>(sibling)); // TODO CHAGNE THIS, create sibling edge
+                    //parent.left.compareAndSet(childEdge.get(),new Edge<T>(newInternal));
+                    //newInternal = new NodeLF<T>(leaf.get().getKey(),newNodebit , child);
                 }
                 else {
                     // new node should be (key, left= oldchild, right = newNode)
-                    newInternal = new NodeLF<>(key, child, newNodebit);
+                    newLeaf = new NodeLF<>(leaf.getKey());
+                    var sibling = new NodeLF<>(key);
+                    newInternal = new NodeLF<>(key, new Edge<>(sibling),  new Edge<>(newLeaf));
                 }
+                // TODO this might always result in true, because, childEdge is atomicreference
+                // it might automatically updated each time, and childEdge.get() returns latest data.
+                // so change strategy.
+                var result = childEdge.compareAndSet(childEdge.get(), new Edge<>(newInternal)); // assuming it will work fine, else replace with parent.left or right
 
                 // todo write to tree using CAS.
-                boolean result = child.getNodeAddr().compareAndSet(leaf.get(), newInternal);
+                //boolean result = childEdge.getNodeAddr().compareAndSet(leaf, newInternal);
 
                 if (result) {
                     return true;
                 }
                 else {
                     // insertion failed. help conflicting delete operation.
-                    boolean flag = child.isFlagged();
-                    boolean tag = child.isTagged();
-                    var childAddress = child.getNodeAddr();
+                    boolean flag = childEdge.get().isFlagged();
+                    boolean tag = childEdge.get().isTagged();
+                    NodeLF<T> childAddress = childEdge.get().getNodeAddr();
 
                     // if address not changed, then either leaf or sibling has been flagged for deletion.
-                    if ((childAddress.get() == leaf.get()) && (flag || tag) )
+                    if ((childAddress == leaf) && (flag || tag) )
                         cleanUp(key, seekRecord);
                     // else restart process.
                 }
@@ -120,7 +136,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
             var parent = seekRecord.getParent().get();
 
             var less = lessThan(key, parent.getKey());
-            NodeBit<T> child;
+            Edge<T> child;
             if (less)
                 child = parent.getLeft();
             else child = parent.getRight();
@@ -167,6 +183,9 @@ public class LockFreeBST<T extends Number> implements BST<T> {
     }
 
     private SeekRecord<T> seek(T key) {
+
+        // SEEK WILL WORK FINE (AS PER OBSERVATION).
+
         // seek doesn't need any CAS instructions.
         /*
         seek traverses from root of the tree to the key called access path.
@@ -178,16 +197,17 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         SeekRecord<T> seekRecord = new SeekRecord<>();
 
         // TODO change this.
-        seekRecord.setAncestor(null);
-        seekRecord.setSuccessor(null);
-        seekRecord.setParent(null);
-        seekRecord.setLeaf(null);
+        seekRecord.setAncestor(R);
+        seekRecord.setSuccessor(S);
+        seekRecord.setParent(S);
+        seekRecord.setLeaf(S.getLeft().getNodeAddr());
 
         // extract parent. ParentField = seekrecord.parent.left(), current feild = seekrecord.leaf.left(), current = currentfiled.address
-        var parentField = seekRecord.getParent().get().getLeft(); // both point to same address?
-        var currentField = seekRecord.getLeaf().get().getLeft();
-        var current = currentField.getNodeAddr();
-        // current stores atomic reference of Node.
+        // parentFields are Edges, not Nodes.
+        Edge<T> parentField = seekRecord.getParent().getLeft(); // both point to same address?
+        Edge<T> currentField = seekRecord.getLeaf().getLeft();
+        NodeLF<T> current = currentField.getNodeAddr();
+        // current stores reference of Node.
         /*
         Traverse from root to leaf
          */
@@ -207,10 +227,10 @@ public class LockFreeBST<T extends Number> implements BST<T> {
             parentField = currentField;
             // update other variables used in traversal
             // todo create new comparator
-            if (lessThan(key, current.get().getKey()))
-                currentField = current.get().getLeft();
+            if (lessThan(key, current.getKey()))
+                currentField = current.getLeft();
             else
-                currentField = current.get().getRight();
+                currentField = current.getRight();
 
             current = currentField.getNodeAddr();
         }
@@ -220,19 +240,20 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     private boolean cleanUp(T key, SeekRecord<T> seekRecord) {
 
-        var ancestor = seekRecord.getAncestor();
-        var successor = seekRecord.getSuccessor();
-        var parent = seekRecord.getParent();
-        var leaf = seekRecord.getLeaf();
+        NodeLF<T> ancestor = seekRecord.getAncestor();
+        NodeLF<T> successor = seekRecord.getSuccessor();
+        NodeLF<T> parent = seekRecord.getParent();
+        NodeLF<T> leaf = seekRecord.getLeaf();
 
-        boolean less = lessThan(key, ancestor.get().getKey());
+        Edge<T> successorAddr, childAddr, siblingAddr;
 
-        NodeBit<T> successorAddr, childAddr, siblingAddr;
+        boolean less = lessThan(key, ancestor.getKey());
+
         if (less) {
-            successorAddr = ancestor.get().getLeft();
+            successorAddr = ancestor.getLeft();
         }
         else {
-            successorAddr = ancestor.get().getRight();
+            successorAddr = ancestor.getRight();
         }
 
         boolean lessThanParent = lessThan(key, parent.get().getKey());
@@ -262,11 +283,11 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     private boolean lessThan(T key1, T key2) {
         // returns true, if key1 is less than key2.
-        return true;
+        return key1.intValue() < key2.intValue();
     }
 
     private boolean equals(T actualKey, T newKey) {
-        return true; // TODO
+        return actualKey.intValue() == newKey.intValue();
     }
 
     public Long[] inOrderTraversal() {
