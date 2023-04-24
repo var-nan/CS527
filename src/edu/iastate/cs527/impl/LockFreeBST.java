@@ -6,34 +6,33 @@ import edu.iastate.cs527.bean.NodeLF;
 import edu.iastate.cs527.bean.Edge;
 import edu.iastate.cs527.bean.SeekRecord;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class LockFreeBST<T extends Number> implements BST<T> {
 
-    // TODO create 4 sentinel nodes.
-
-    // TODO CREATE ROOT NODE.
-    NodeLF<T> root;
+    // TODO create sentinel nodes
     NodeLF<T> R, S;
+    // S behaves like root node.
 
-
-    public LockFreeBST(T r, T s, T rootKey) {
+    public LockFreeBST(T inf2, T inf1, T inf0) {
         //R.left = S;
-        R = new NodeLF<>(r);
-        S = new NodeLF<>(s);
-        Edge<T> rightEdgeR = new Edge<>(new NodeLF<>(r));
+        R = new NodeLF<>(inf2);
+        S = new NodeLF<>(inf1);
+        Edge<T> rightEdgeR = new Edge<>(new NodeLF<>(inf2));
         R.right = new AtomicReference<>(rightEdgeR); // NOTE: no need to initialize R.right and S.right.
-        Edge<T> leftEdgeR = new Edge<>(new NodeLF<>(s));
+        Edge<T> leftEdgeR = new Edge<>(new NodeLF<>(inf1));
         R.left = new AtomicReference<>(leftEdgeR);
-        var rightEdgeL = new Edge<T>(new NodeLF<>(s));
-        var leftEdgeL = new Edge<T>(new NodeLF<>(s));
+
+        var rightEdgeL = new Edge<T>(new NodeLF<>(inf1));
+        var leftEdgeL = new Edge<T>(new NodeLF<>(inf0));
         S.right = new AtomicReference<>(rightEdgeL);
         S.left = new AtomicReference<>(leftEdgeL);
         // TODO S.left should be root node. S should be internal node.
-        var rootEdge = new Edge<T>(new NodeLF<>(rootKey));
+        //var rootEdge = new Edge<T>(new NodeLF<>(inf0));
 
-        root = new NodeLF<>(r);
+        //root = new NodeLF<>(inf2);
         //root.setLeftCAS();
     }
 
@@ -52,17 +51,32 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     @Override
     public List<T> traverse(){
+        List<T> list = new ArrayList<>();
+        NodeLF<T> current = S.left.get().nodeAddr;
+        if (current != null)
+            inOrderTraverse(current, list);
         // TODO done by single thread (preferably main).
-        return null;
+        return list;
+    }
+
+    private void inOrderTraverse(NodeLF<T> node, List<T> elements) {
+        // TODO traversal is in wrong order.
+        if (node != null) {
+            if (node.left.get() != null)
+                inOrderTraverse(node.left.get().getNodeAddr(), elements);
+            //elements.add(node.key);
+            if (node.right.get()!= null)
+                inOrderTraverse(node.right.get().getNodeAddr(), elements);
+            if (node.left.get() == null && node.right.get() == null)
+                elements.add(node.key);
+        }
     }
 
     @Override
     public boolean insert(T key) {
 
         while(true) {
-
             var seekRecord = seek(key); // obtain seek record.
-
             // if key is already present, return false.
             if (equals(seekRecord.getLeaf().getKey(), key))
                 return false;
@@ -73,8 +87,8 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 NodeLF<T> leaf = seekRecord.getLeaf();
 
                 AtomicReference<Edge<T>> childEdge;
-                if (lessThan(parent.getKey(), key))
-                    childEdge = parent.left;
+                if (lessThan( key, parent.getKey()))
+                    childEdge = parent.left; // TODO swap left and right. incorrect condition
                 else childEdge =  parent.right;
 
                 // create new internal node and a new leaf node,
@@ -114,7 +128,6 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                     boolean flag = childEdge.get().isFlagged();
                     boolean tag = childEdge.get().isTagged();
                     NodeLF<T> childAddress = childEdge.get().getNodeAddr();
-
                     // if address not changed, then either leaf or sibling has been flagged for deletion.
                     if ((childAddress == leaf) && (flag || tag) )
                         cleanUp(key, seekRecord);
@@ -127,6 +140,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
     @Override
     public boolean delete(T key) {
 
+        /*
         var mode = Mode.INJECTION;
         NodeLF<T> leaf = null;
         while (true) {
@@ -180,6 +194,9 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 }
             }
         }
+
+         */
+        return false;
     }
 
     private SeekRecord<T> seek(T key) {
@@ -206,6 +223,10 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         // parentFields are Edges, not Nodes.
         Edge<T> parentField = seekRecord.getParent().getLeft(); // both point to same address?
         Edge<T> currentField = seekRecord.getLeaf().getLeft();
+
+        if (currentField == null)
+            return seekRecord;
+
         NodeLF<T> current = currentField.getNodeAddr();
         // current stores reference of Node.
         /*
@@ -224,8 +245,13 @@ public class LockFreeBST<T extends Number> implements BST<T> {
             seekRecord.setParent(seekRecord.getLeaf());
             seekRecord.setLeaf(current);
 
+
+
             parentField = currentField;
             // update other variables used in traversal
+
+            if (current.getLeft() == null || current.getRight() == null)
+                return seekRecord;
             // todo create new comparator
             if (lessThan(key, current.getKey()))
                 currentField = current.getLeft();
@@ -240,6 +266,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     private boolean cleanUp(T key, SeekRecord<T> seekRecord) {
 
+        /*
         NodeLF<T> ancestor = seekRecord.getAncestor();
         NodeLF<T> successor = seekRecord.getSuccessor();
         NodeLF<T> parent = seekRecord.getParent();
@@ -279,6 +306,9 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         boolean siblingFlag = siblingAddr.isFlagged();
         // todo check logic.
         return successorAddr.getNodeAddr().compareAndSet(successor.get(), siblingAddr.getNodeAddr().get());
+
+         */
+        return false;
     }
 
     private boolean lessThan(T key1, T key2) {
@@ -292,5 +322,27 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     public Long[] inOrderTraversal() {
         return null;
+    }
+
+    public static void main(String[] args) {
+        LockFreeBST<Integer> bst = new LockFreeBST<>(5000,4999, 4998);
+
+        /*
+        for (int i = 1; i <= 3; i++) {
+            boolean result = bst.insert(i+20);
+            if (result)
+                System.out.println("Inserted successfully");
+
+            else System.out.println("Not inserted");
+        }
+
+         */
+        bst.insert(100);
+        bst.insert(50);
+        bst.insert(200);
+        bst.insert(250);
+        List<Integer> elements = bst.traverse();
+        for (Integer i: elements)
+            System.out.print(i +" ");
     }
 }

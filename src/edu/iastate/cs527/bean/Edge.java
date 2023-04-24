@@ -15,7 +15,7 @@ public class Edge<T extends Number> {
      */
     public AtomicBoolean flagged; // edit: changing atomic boolean to boolaen
     public AtomicBoolean tagged;
-    public NodeLF<T> nodeAddr; // does nodeAddr has to be AtomicReference?
+    public NodeLF<T> nodeAddr; // does nodeAddr have to be AtomicReference?
 
     public Edge(NodeLF<T> nodeAddr) {
         this.flagged = new AtomicBoolean(false);
