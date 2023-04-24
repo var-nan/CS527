@@ -1,35 +1,45 @@
 package edu.iastate.cs527;
 
 import edu.iastate.cs527.impl.LockBST;
+import edu.iastate.cs527.impl.LockFreeBST;
 import edu.iastate.cs527.impl.SerialBST;
 
 import java.util.List;
 import java.util.concurrent.*;
 
 public class Main {
+
+    // TODO study more about ThreadPool Executor service framework.
+    // it is giving exception for boundedwork queue.
     public static void main(String[] args) {
         long start = System.nanoTime();
         long end = System.nanoTime();
-        System.out.println(Runtime.getRuntime().availableProcessors());
+        System.out.println("Number of available processors: "+ Runtime.getRuntime().availableProcessors());
         //Executor executor = Executors.newFixedThreadPool(100);
         //test(new SerialBST<>(500));
         //test(new LockBST<>(500));
+        var n = 6;
 
         // TODO Turn off GC.
-        BSTThreadPool bstThreadPool = new BSTThreadPool(4,4,
-                100000,
-                TimeUnit.MILLISECONDS,new LinkedBlockingDeque<>(10));
+        BSTThreadPool bstThreadPool = new BSTThreadPool(8,8,
+                                                    100000,
+                                                    TimeUnit.MILLISECONDS,
+                                                    new LinkedBlockingDeque<>(10));
+        var min = 1;
+        var max = 450;
 
-        bstThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                System.out.println("soem computattion doing");
-            }
-        });
-
+        BST<Integer> lfBst = new LockFreeBST<>(500, 499, 498);
+        System.out.println("Starting computation.");
+        for (int i = 1; i <=n ; i++){
+            var x = ThreadLocalRandom.current().nextInt(min, max+1);
+            bstThreadPool.execute(() -> lfBst.insert(x));
+            bstThreadPool.execute(() -> lfBst.search(x));
+            bstThreadPool.execute(() -> lfBst.delete(x));
+        }
+        //bstThreadPool.execute(() -> System.out.println("soem computattion doing"));
         bstThreadPool.shutdown();
-        var time = bstThreadPool.totalTime;
-        //System.out.println("Time elapsed: "+ (end-start));
+        System.out.println("Time elapsed: "+bstThreadPool.totalTime.get());
+        printTree(lfBst.traverse());
     }
 
 
@@ -49,6 +59,21 @@ public class Main {
             System.out.print(n+" ");
         }
         System.out.println("\nDone");
+    }
+
+    private static void printTree(List<Integer> list){
+        System.out.println("printing tree..");
+        for (Integer i: list){
+            System.out.print(i +" ");
+        }
+    }
+
+    private static void testLFBST(){
+
+    }
+
+    private static void testSerialBST(int n) {
+
 
     }
 }
