@@ -245,8 +245,6 @@ public class LockFreeBST<T extends Number> implements BST<T> {
             seekRecord.setParent(seekRecord.getLeaf());
             seekRecord.setLeaf(current);
 
-
-
             parentField = currentField;
             // update other variables used in traversal
 
