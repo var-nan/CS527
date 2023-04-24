@@ -88,7 +88,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
                 AtomicReference<Edge<T>> childEdge;
                 if (lessThan( key, parent.getKey()))
-                    childEdge = parent.left; // TODO swap left and right. incorrect condition
+                    childEdge = parent.left; // only to track which side key need to be inserted.
                 else childEdge =  parent.right;
 
                 // create new internal node and a new leaf node,
@@ -108,8 +108,11 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 }
                 else {
                     // new node should be (key, left= oldchild, right = newNode)
-                    newLeaf = new NodeLF<>(leaf.getKey());
-                    var sibling = new NodeLF<>(key);
+                    //newLeaf = new NodeLF<>(leaf.getKey());
+                    //var sibling = new NodeLF<>(key);
+                    newLeaf = new NodeLF<>(key);
+                    var sibling = new NodeLF<>(leaf.getKey());
+
                     newInternal = new NodeLF<>(key, new Edge<>(sibling),  new Edge<>(newLeaf));
                 }
                 // TODO this might always result in true, because, childEdge is atomicreference
@@ -339,6 +342,8 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         bst.insert(50);
         bst.insert(200);
         bst.insert(250);
+        bst.insert(10);
+
         List<Integer> elements = bst.traverse();
         for (Integer i: elements)
             System.out.print(i +" ");
