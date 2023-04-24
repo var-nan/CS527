@@ -127,6 +127,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                     return true;
                 }
                 else {
+                    // TODO check below code.
                     // insertion failed. help conflicting delete operation.
                     boolean flag = childEdge.get().isFlagged();
                     boolean tag = childEdge.get().isTagged();
@@ -143,30 +144,28 @@ public class LockFreeBST<T extends Number> implements BST<T> {
     @Override
     public boolean delete(T key) {
 
-        /*
         var mode = Mode.INJECTION;
+
         NodeLF<T> leaf = null;
         while (true) {
             // obtain seek record.
             var seekRecord = seek(key);
 
-            var parent = seekRecord.getParent().get();
-
-            var less = lessThan(key, parent.getKey());
+            var parent = seekRecord.getParent();
             Edge<T> child;
-            if (less)
+            //var less = lessThan(key, parent.getKey());
+            if (lessThan(key, parent.getKey())) // which side the key lies to parent.
                 child = parent.getLeft();
             else child = parent.getRight();
 
             //var leaf = seekRecord.getLeaf().get();
             if (mode == Mode.INJECTION) {
-                leaf = seekRecord.getLeaf().get();
+                // check if key is present in the tree.
+                leaf = seekRecord.getLeaf();
                 if (!equals(leaf.getKey(), key))
                     return false;
-                // key is present in the tree.
-                // inject delete operation by marking the flag bit.
-                boolean result = child.setFlaggedCAS(true); // TODO cas operation
-
+                // inject delete operation by marking the flag bit in edge from parent.
+                boolean result = child.setFlaggedCAS(true); // BTS Operation
                 if (result) {
                     mode = Mode.CLEANUP;
                     if (cleanUp(key, seekRecord))
@@ -175,7 +174,7 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 else {
                     boolean flag = child.isFlagged();
                     boolean tag = child.isTagged();
-                    var childNode = child.getNodeAddr().get();
+                    NodeLF<T> childNode = child.getNodeAddr();
 
                     if ((childNode == leaf) && (flag || tag)) {
                         // address of child has not changed, either the leaf node or its sibling has been flagged.
@@ -184,9 +183,9 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 }
             }
             else{
-                // non-injection mode. clean up mode.
+                // clean up mode.
                 // check if the leaf node is still present or not.
-                if (leaf != seekRecord.getLeaf().get()){
+                if (leaf != seekRecord.getLeaf()){
                    return true;
                 }
                 else {
@@ -197,9 +196,6 @@ public class LockFreeBST<T extends Number> implements BST<T> {
                 }
             }
         }
-
-         */
-        return false;
     }
 
     private SeekRecord<T> seek(T key) {
@@ -267,49 +263,51 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     private boolean cleanUp(T key, SeekRecord<T> seekRecord) {
 
-        /*
         NodeLF<T> ancestor = seekRecord.getAncestor();
         NodeLF<T> successor = seekRecord.getSuccessor();
         NodeLF<T> parent = seekRecord.getParent();
         NodeLF<T> leaf = seekRecord.getLeaf();
 
         Edge<T> successorAddr, childAddr, siblingAddr;
+        AtomicReference<Edge<T>> successorEdge;
 
-        boolean less = lessThan(key, ancestor.getKey());
+        //boolean less = lessThan(key, ancestor.getKey());
 
-        if (less) {
+        // track which side of ancestor, successor lies. store pointer.
+        if (lessThan(key, ancestor.getKey())) {
+            successorEdge = ancestor.left;
             successorAddr = ancestor.getLeft();
         }
         else {
+            successorEdge = ancestor.right;
             successorAddr = ancestor.getRight();
         }
 
-        boolean lessThanParent = lessThan(key, parent.get().getKey());
+        boolean lessThanParent = lessThan(key, parent.getKey());
         if (lessThanParent) {
-            childAddr = parent.get().getLeft();
-            siblingAddr = parent.get().getRight();
+            childAddr = parent.getLeft();
+            siblingAddr = parent.getRight();
         }
         else {
-            childAddr = parent.get().getRight();
-            siblingAddr = parent.get().getLeft();
+            childAddr = parent.getRight();
+            siblingAddr = parent.getLeft();
         }
 
         boolean flag = childAddr.isFlagged();
         if (!flag) {
-            // leaf node is not flagged for deletion, it must be flagged
-            // TODO read logic again
+            // leaf node is not flagged for deletion, thus sibling node must be flagged,
+            siblingAddr = childAddr; // not clear why?
         }
 
         // tag sibling edge, no modify operation should occur from now on at this edge.
-
         siblingAddr.setTaggedCAS(true);
 
-        boolean siblingFlag = siblingAddr.isFlagged();
+        // read flag and address fields.
+        //boolean siblingFlag = siblingAddr.isFlagged();
         // todo check logic.
-        return successorAddr.getNodeAddr().compareAndSet(successor.get(), siblingAddr.getNodeAddr().get());
 
-         */
-        return false;
+        return successorEdge.compareAndSet(successorAddr,siblingAddr );
+        // return successorAddr.getNodeAddr().compareAndSet(successor, siblingAddr.getNodeAddr());
     }
 
     private boolean lessThan(T key1, T key2) {
@@ -328,23 +326,15 @@ public class LockFreeBST<T extends Number> implements BST<T> {
     public static void main(String[] args) {
         LockFreeBST<Integer> bst = new LockFreeBST<>(5000,4999, 4998);
 
-        /*
-        for (int i = 1; i <= 3; i++) {
-            boolean result = bst.insert(i+20);
-            if (result)
-                System.out.println("Inserted successfully");
-
-            else System.out.println("Not inserted");
-        }
-
-         */
         bst.insert(100);
         bst.insert(50);
         bst.insert(200);
         bst.insert(250);
         bst.insert(10);
+        bst.delete(10);
 
         List<Integer> elements = bst.traverse();
+        System.out.println("List of elements in Tree..");
         for (Integer i: elements)
             System.out.print(i +" ");
     }
