@@ -1,7 +1,10 @@
 package edu.iastate.cs527.bean;
 
+import net.jcip.annotations.ThreadSafe;
+
 import java.util.concurrent.atomic.AtomicReference;
 
+@ThreadSafe
 public class NodeLF<T extends Number>{
     public final T key; // TODO make it final.
     public AtomicReference<Edge<T>> left = new AtomicReference<>();

@@ -5,11 +5,13 @@ import edu.iastate.cs527.bean.Mode;
 import edu.iastate.cs527.bean.NodeLF;
 import edu.iastate.cs527.bean.Edge;
 import edu.iastate.cs527.bean.SeekRecord;
+import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+@ThreadSafe
 public class LockFreeBST<T extends Number> implements BST<T> {
 
     // TODO create sentinel nodes
