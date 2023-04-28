@@ -2,11 +2,13 @@ package edu.iastate.cs527.impl;
 
 import edu.iastate.cs527.BST;
 
+import javax.print.attribute.IntegerSyntax;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.IntStream;
 
 public class SerialBST<T extends Number> implements BST<T> {
 
@@ -163,6 +165,8 @@ public class SerialBST<T extends Number> implements BST<T> {
 
         int[] vals = new int[N];
 
+        //IntStream numbers = ThreadLocalRandom.current().ints(10, min, max+1);
+
         for (int i = 0; i < N; i++) {
             var x = ThreadLocalRandom.current().nextInt(min, max+1);
             vals[i] = x;
@@ -170,7 +174,10 @@ public class SerialBST<T extends Number> implements BST<T> {
         }
 
         for (int i = 0; i < 11; i++){
-            bst.delete(vals[i]);
+            var result = bst.delete(vals[i]);
+            if (result)
+                System.out.println("Deleted Sucessfully: "+ vals[i]);
+            else System.out.println("Not deleted "+ vals[i]);
         }
 
 

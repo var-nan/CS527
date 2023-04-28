@@ -10,25 +10,26 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-public class Test {
-
+public class Timing {
 
     /*
     TODO:
-    * 1. Increase itertion count.
+    * 1. Increase iteration count.
     * 2. Modify hotspot flags for GC.
     * 3. Profile Heap.
     * 4. Turn off GC.
     * 5. Measure time for serial BST with single thread.
+    * 6. Create Lock version of BST.
+    * 7. Modify getTasks() to initialize tasks for multiple tasks.
      */
 
     final static int n_iterations = 5;
     final static int[] initial_tree_size = {10000, 20000, 50000}; /// todo revert to 10K, 20K, 100K
     final static int n_operations = 15000; // todo revert to 15K
 
-    final static int[] readHeavy = loadModeArray(Mode.READ_HEAVY);
-    final static int[] writeHeavy = loadModeArray(Mode.WRITE_HEAVY);
-    final static int[] mixed = loadModeArray(Mode.MIXED);
+    final static int[] readHeavy = loadModeArray(Load.READ_HEAVY);
+    final static int[] writeHeavy = loadModeArray(Load.WRITE_HEAVY);
+    final static int[] mixed = loadModeArray(Load.MIXED);
 
     final static int serialPoolSize = 1;
     final static int serialMaxPoolSize = 1;
@@ -53,7 +54,7 @@ public class Test {
 
             for (Integer tree_size : initial_tree_size) {
 
-                for (Mode mode: Mode.values()) {
+                for (Load load : Load.values()) {
                     for (int iter = 0; iter < n_iterations; iter++) {
 
                         BST<Integer> serialBST = new SerialBST<>(tree_size / 2);
@@ -66,7 +67,7 @@ public class Test {
 
                         if (threads == 1) {
                             IntStream randomNumbers2 = ThreadLocalRandom.current().ints(n_operations, 1, tree_size);
-                            List<Runnable> serialTasks = getTasks(serialBST, randomNumbers2, mode);
+                            List<Runnable> serialTasks = getTasks(serialBST, randomNumbers2, load);
                             LinkedBlockingQueue<Runnable> serialWorkQueue = new LinkedBlockingQueue<>(serialTasks);
                             BSTThreadPool serialPool = new BSTThreadPool(1, 1, keepAliveTime, timeUnit, serialWorkQueue);
                             long startTimeSerial = System.nanoTime();
@@ -98,7 +99,7 @@ public class Test {
 
                          */
                         // lock free version
-                        List<Runnable> lfTasks = getTasks(lfBST, randomNumbers, mode);
+                        List<Runnable> lfTasks = getTasks(lfBST, randomNumbers, load);
                         LinkedBlockingQueue<Runnable> lfWorkQueue = new LinkedBlockingQueue<>(lfTasks);
 
                         //System.out.println("Starting tasks.... in iteration: " +iter+ "\n");
@@ -124,7 +125,7 @@ public class Test {
                         long endTimeLF = System.nanoTime();
 
                         String printStatement = "Threads: " + threads + ". Initial Tree Size: " + tree_size +
-                                ". Mode: " + mode + ". Iteration: " + iter +
+                                ". Mode: " + load + ". Iteration: " + iter +
                                 " Execution time: "  + (endTimeLF - startTimeLF)/(Math.pow(10,9)) + " seconds";
 
                         if (lfPool.isTerminated())
@@ -183,14 +184,14 @@ public class Test {
         return array;
     }
 
-    private static int[] loadModeArray(Mode mode) {
+    private static int[] loadModeArray(Load load) {
 
         int[] type = new int[100];
         int insertStart, insertEnd, searchStart, searchEnd, deleteStart, deleteEnd;
 
 
         // TODO VERIFY INDICES.
-        if (mode == Mode.WRITE_HEAVY) {
+        if (load == Load.WRITE_HEAVY) {
             insertStart = 0;
             insertEnd = 50;
             searchStart = 50;
@@ -199,7 +200,7 @@ public class Test {
             deleteEnd = 100;
 
         }
-        else if (mode == Mode.READ_HEAVY) {
+        else if (load == Load.READ_HEAVY) {
             insertStart = 0;
             insertEnd = 9;
             searchStart = 9;
@@ -228,7 +229,7 @@ public class Test {
 
         return type;
     }
-    private static int[] loadArray(int insertL, int searchL, int deleteL, int tree_size, Mode mode) {
+    private static int[] loadArray(int insertL, int searchL, int deleteL, int tree_size, Load load) {
 
         if (searchL + deleteL + insertL != 100) {
             throw new RuntimeException("Invalid Load balance");
@@ -261,7 +262,7 @@ public class Test {
 
 
         // TODO VERIFY INDICES.
-        if (mode == Mode.WRITE_HEAVY) {
+        if (load == Load.WRITE_HEAVY) {
             insertStart = 0;
             insertEnd = 50;
             searchStart = 50;
@@ -270,7 +271,7 @@ public class Test {
             deleteEnd = 100;
 
         }
-        else if (mode == Mode.READ_HEAVY) {
+        else if (load == Load.READ_HEAVY) {
             insertStart = 0;
             insertEnd = 9;
             searchStart = 9;
@@ -300,14 +301,14 @@ public class Test {
         return type;
     }
 
-    private static List<Runnable> getTasks( BST<Integer> bst, IntStream randomNumbers, Mode mode) {
+    private static List<Runnable> getTasks( BST<Integer> bst, IntStream randomNumbers, Load load) {
 
         List<Runnable> tasks = new ArrayList<>(n_operations);
         // get type array
         int [] type;
-        if (mode == Mode.MIXED)
+        if (load == Load.MIXED)
             type = mixed;
-        else if (mode == Mode.WRITE_HEAVY)
+        else if (load == Load.WRITE_HEAVY)
             type = writeHeavy;
         else type = readHeavy;
 
@@ -359,7 +360,7 @@ public class Test {
     }
 }
 
-enum Mode {
+enum Load {
     WRITE_HEAVY,
     READ_HEAVY,
     MIXED;

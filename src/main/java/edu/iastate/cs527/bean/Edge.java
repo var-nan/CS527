@@ -1,12 +1,11 @@
 package edu.iastate.cs527.bean;
 
+import net.jcip.annotations.ThreadSafe;
+
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
+@ThreadSafe
 public class Edge<T extends Number> {
-
-    // TODO use readwrite locks?
-    // TODO create constructor
 
     /*
     flag - flag bit

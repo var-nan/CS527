@@ -1,7 +1,6 @@
 package edu.iastate.cs527.impl;
 
 import edu.iastate.cs527.BST;
-import edu.iastate.cs527.bean.Mode;
 import edu.iastate.cs527.bean.NodeLF;
 import edu.iastate.cs527.bean.Edge;
 import edu.iastate.cs527.bean.SeekRecord;
@@ -13,6 +12,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @ThreadSafe
 public class LockFreeBST<T extends Number> implements BST<T> {
+
+    public enum Mode {
+        INJECTION, // INJECTION MODE
+        CLEANUP // CLEANUP MODE.
+    }
 
     // TODO create sentinel nodes
     NodeLF<T> R, S;
@@ -202,8 +206,6 @@ public class LockFreeBST<T extends Number> implements BST<T> {
 
     private SeekRecord<T> seek(T key) {
 
-        // SEEK WILL WORK FINE (AS PER OBSERVATION).
-
         // seek doesn't need any CAS instructions.
         /*
         seek traverses from root of the tree to the key called access path.
@@ -340,4 +342,6 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         for (Integer i: elements)
             System.out.print(i +" ");
     }
+
+
 }

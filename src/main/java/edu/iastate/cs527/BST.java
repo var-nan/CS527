@@ -6,8 +6,6 @@ public interface BST<T extends Number> {
 
     public boolean search(T key);
 
-
-
     public boolean insert(T key);
 
     public boolean delete(T key);

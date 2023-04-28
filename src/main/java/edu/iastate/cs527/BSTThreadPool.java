@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 public class BSTThreadPool extends ThreadPoolExecutor {
+    // TODO change time.s
 
     private final ThreadLocal<Long> start = new ThreadLocal<>();
     private final ThreadLocal<Long> end = new ThreadLocal<>();
@@ -24,17 +25,17 @@ public class BSTThreadPool extends ThreadPoolExecutor {
         // TODO need logging?
         //System.out.println("Starting Thread");
         logger.fine("Starting thread");
-        start.set(System.nanoTime());
+        //start.set(System.nanoTime());
     }
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         end.set(System.nanoTime());
-        logger.fine("Ending thread from thread pool");
+        //logger.fine("Ending thread from thread pool");
         //System.out.println("Ending thread");
-        long timeElapsed = end.get() - start.get();
-        totalTime.addAndGet(timeElapsed);
-        numTasks.incrementAndGet();
+        //long timeElapsed = end.get() - start.get();
+        //totalTime.addAndGet(timeElapsed);
+        //numTasks.incrementAndGet();
         super.afterExecute(r, t);
     }
 }

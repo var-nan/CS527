@@ -1,7 +1,5 @@
 package edu.iastate.cs527.bean;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public class SeekRecord<T extends Number> {
 
     // TODO- CHANGED type AtomicReference to normal
