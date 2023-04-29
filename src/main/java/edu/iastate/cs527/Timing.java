@@ -1,9 +1,13 @@
 package edu.iastate.cs527;
 
+import edu.iastate.cs527.impl.LockBST;
 import edu.iastate.cs527.impl.LockFreeBST;
 import edu.iastate.cs527.impl.SerialBST;
 
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
@@ -23,7 +27,7 @@ public class Timing {
     * 7. Modify getTasks() to initialize tasks for multiple tasks.
      */
 
-    final static int n_iterations = 5;
+    final static int n_iterations = 10;
     final static int[] initial_tree_size = {10000, 20000, 50000}; /// todo revert to 10K, 20K, 100K
     final static int n_operations = 15000; // todo revert to 15K
 
@@ -38,6 +42,30 @@ public class Timing {
 
     //final static int[] nThreads;
 
+    private static int getLoadNumber(Load load) {
+        if (load == Load.WRITE_HEAVY)
+            return 0;
+        else if (load == Load.READ_HEAVY)
+            return 1;
+        else return 2;
+    }
+
+    private static int getTreeIndex(int size) {
+        for (int i = 0; i < initial_tree_size.length; i++) {
+            if (initial_tree_size[i] == size)
+                return i;
+        }
+        return 0;
+    }
+
+    private static int getThreadIndex(int[] threads, int threadNumber) {
+        for (int i = 0; i < threads.length; i++) {
+            if (threads[i] == threadNumber)
+                return i;
+        }
+        return 0;
+    }
+
     public static void main(String[] args) {
 
 
@@ -50,24 +78,52 @@ public class Timing {
             nThreads[i] = nThreads[i-1] * 2;
         }
 
+
+        // array to store all the execution times
+        double [][][] serialBSTTimes = new double[initial_tree_size.length]
+                                                [Load.values().length]
+                                                [n_iterations];
+
+        double[][][][] lockBSTTimes = new double[nThreads.length]
+                                                [initial_tree_size.length]
+                                                [Load.values().length]
+                                                [n_iterations];
+
+        double [][][][] lfBSTTimes = new double[nThreads.length]
+                                                [initial_tree_size.length]
+                                                [Load.values().length]
+                                                [n_iterations];
+
+        //int loadNumber;
+
+
         for (Integer threads: nThreads) {
+
+            var threadIndex = getThreadIndex(nThreads, threads);
 
             for (Integer tree_size : initial_tree_size) {
 
+                var treeIndex = getTreeIndex(tree_size);
+
                 for (Load load : Load.values()) {
+
+                    var loadNumber = getLoadNumber(load);
+
                     for (int iter = 0; iter < n_iterations; iter++) {
 
+                        BST<Integer> lockBST = new LockBST<>(tree_size/2);
                         BST<Integer> serialBST = new SerialBST<>(tree_size / 2);
                         BST<Integer> lfBST = new LockFreeBST<>(tree_size + 3, tree_size + 2, tree_size + 1);
 
-                        populateTree(tree_size, serialBST, lfBST);
+                        populateTree(tree_size, serialBST, lfBST, lockBST);
 
                         IntStream randomNumbers = ThreadLocalRandom.current().ints(n_operations, 1, tree_size); // TODO; add range and size.
-
+                        List<Integer> allRandomNumbers  = new ArrayList<>(n_operations);
+                        randomNumbers.forEach(allRandomNumbers::add);
 
                         if (threads == 1) {
                             IntStream randomNumbers2 = ThreadLocalRandom.current().ints(n_operations, 1, tree_size);
-                            List<Runnable> serialTasks = getTasks(serialBST, randomNumbers2, load);
+                            List<Runnable> serialTasks = getTasks(serialBST, allRandomNumbers.iterator(), load);
                             LinkedBlockingQueue<Runnable> serialWorkQueue = new LinkedBlockingQueue<>(serialTasks);
                             BSTThreadPool serialPool = new BSTThreadPool(1, 1, keepAliveTime, timeUnit, serialWorkQueue);
                             long startTimeSerial = System.nanoTime();
@@ -75,8 +131,12 @@ public class Timing {
                             serialPool.shutdown();
                             while (!serialPool.isTerminated()) ;
                             long endTimeSerial = System.nanoTime();
+                            var durationSerial = (endTimeSerial-startTimeSerial)/Math.pow(10,9);
+                            serialBSTTimes[treeIndex][loadNumber][iter] = durationSerial;
+                            String printStatementSerial = "Serial BST - Tree size: "+ tree_size+", Iteration: "+iter + ", Execution: "
+                                    + durationSerial;
 
-                            System.out.println("For serial BST, iteration: " + iter + " execution time: " + (endTimeSerial - startTimeSerial) / Math.pow(10, 9));
+                            //System.out.println(printStatementSerial);
                         }
                         /*
                         // create workqueue for lock free.
@@ -98,8 +158,35 @@ public class Timing {
                         System.out.println("In "+iter+ " iteration, exeuction with ")
 
                          */
+
+                        // lock version
+                        List<Runnable> lockTasks = getTasks(lockBST, allRandomNumbers.iterator(), load);
+                        LinkedBlockingQueue<Runnable> lockWorkQueue = new LinkedBlockingQueue<>(lockTasks);
+                        BSTThreadPool lockPool = new BSTThreadPool(threads,threads, keepAliveTime, timeUnit, lockWorkQueue);
+
+                        long startTimeLock = System.nanoTime();
+                        lockPool.prestartAllCoreThreads();
+
+                        lockPool.shutdown();
+
+                        while(!lockPool.isTerminated()) {
+
+                        }
+                        long endTimeLock = System.nanoTime();
+                        var durationLock = (endTimeLock -startTimeLock)/Math.pow(10,9);
+                        lockBSTTimes[threadIndex][treeIndex][loadNumber][iter] = durationLock;
+
+                        String printStatementLock = "LockBST - Threads: " + threads + ". Initial Tree Size: " + tree_size +
+                                ". Load: " + load + ". Iteration: " + iter +
+                                " Execution time: "  + durationLock + " seconds";
+
+                        /*
+                        if (lockPool.isTerminated())
+                            System.out.println(printStatementLock);
+                        else System.out.println("LockBST - Threadpool is not shutdown yet");
+                         */
                         // lock free version
-                        List<Runnable> lfTasks = getTasks(lfBST, randomNumbers, load);
+                        List<Runnable> lfTasks = getTasks(lfBST, allRandomNumbers.iterator(), load);
                         LinkedBlockingQueue<Runnable> lfWorkQueue = new LinkedBlockingQueue<>(lfTasks);
 
                         //System.out.println("Starting tasks.... in iteration: " +iter+ "\n");
@@ -115,7 +202,6 @@ public class Timing {
                         } catch (InterruptedException e) {
                             throw new RuntimeException("Not shutdown");
                         }
-
                          */
 
                         while(!lfPool.isTerminated()){
@@ -123,20 +209,37 @@ public class Timing {
                         }
 
                         long endTimeLF = System.nanoTime();
+                        var durationLF = (endTimeLF - startTimeLF)/Math.pow(10,9);
+                        lfBSTTimes[threadIndex][treeIndex][loadNumber][iter] = durationLF;
 
-                        String printStatement = "Threads: " + threads + ". Initial Tree Size: " + tree_size +
-                                ". Mode: " + load + ". Iteration: " + iter +
-                                " Execution time: "  + (endTimeLF - startTimeLF)/(Math.pow(10,9)) + " seconds";
+                        String printStatementLF = "LFBST- Threads: " + threads + ". Initial Tree Size: " + tree_size +
+                                ". Load: " + load + ". Iteration: " + iter +
+                                " Execution time: "  + durationLF + " seconds";
 
+                        /*
                         if (lfPool.isTerminated())
-                            System.out.println(printStatement);
+                            System.out.println(printStatementLF);
                         else System.out.println("Threadpool is not shtudown yet.");
-
+                         */
                     }
                 }
             }
         }
 
+        System.out.println("All Executions Performed..");
+        serializeArray(lockBSTTimes); // TODO save other arrays with different file name.
+
+    }
+
+    private static void serializeArray(double[][][][] array){
+        try {
+            FileOutputStream fos = new FileOutputStream("/home/nandhan/array_result.ser");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(array);
+        }
+        catch (Exception e){
+            System.out.println("EXception occured");
+        }
     }
 
     @SafeVarargs
@@ -301,7 +404,8 @@ public class Timing {
         return type;
     }
 
-    private static List<Runnable> getTasks( BST<Integer> bst, IntStream randomNumbers, Load load) {
+
+    private static List<Runnable> getTasks(BST<Integer> bst, Iterator<Integer> randomIterator, Load load) {
 
         List<Runnable> tasks = new ArrayList<>(n_operations);
         // get type array
@@ -337,14 +441,12 @@ public class Timing {
         }
 
          */
-
-
-        var randomIterator = randomNumbers.iterator();
+        //var randomIterator = randomNumbers;
         numbers.forEach( (i) -> {//
 
             if (randomIterator.hasNext()) {
 
-                int nextNumber = randomIterator.nextInt();
+                int nextNumber = randomIterator.next();
                 if (type[i] == 1)
                     tasks.add(() -> bst.insert(nextNumber));
                 else if (type[i] == 2)
