@@ -18,17 +18,13 @@ public class Timing {
 
     /*
     TODO:
-    * 1. Increase iteration count.
+    * 1. Turn off GC.
     * 2. Modify hotspot flags for GC.
     * 3. Profile Heap.
-    * 4. Turn off GC.
-    * 5. Measure time for serial BST with single thread.
-    * 6. Create Lock version of BST.
-    * 7. Modify getTasks() to initialize tasks for multiple tasks.
      */
 
     final static int n_iterations = 10;
-    final static int[] initial_tree_size = {10000, 20000, 50000}; /// todo revert to 10K, 20K, 100K
+    final static int[] initial_tree_size = {100000, 200000, 500000}; /// todo revert to 10K, 20K, 100K
     final static int n_operations = 15000; // todo revert to 15K
 
     final static int[] readHeavy = loadModeArray(Load.READ_HEAVY);
@@ -70,7 +66,7 @@ public class Timing {
 
 
         var processors = Runtime.getRuntime().availableProcessors();
-        var nelements = (int) (Math.log(processors)/Math.log(2));
+        var nelements = (int) (Math.log(processors)/Math.log(2)) + 1;
 
         int[] nThreads = new int[nelements];
         nThreads[0] = 1;
@@ -138,40 +134,19 @@ public class Timing {
 
                             //System.out.println(printStatementSerial);
                         }
-                        /*
-                        // create workqueue for lock free.
-                        List<Runnable> serialTasks = getTasks(serialBST, randomNumbers, mode);
-                        LinkedBlockingQueue<Runnable> serialWorkQueue = new LinkedBlockingQueue<>(serialTasks);
-                        // execute queue.
-
-                        BSTThreadPool serialPool = new BSTThreadPool(1, 1, keepAliveTime, timeUnit, serialWorkQueue);
-                        // start
-
-                        long startTime = System.nanoTime();
-                        int currentThreads = serialPool.prestartAllCoreThreads();
-
-                        serialPool.shutdown();
-                        while(!serialPool.isShutdown());
-
-                        long endTime = System.nanoTime();
-
-                        System.out.println("In "+iter+ " iteration, exeuction with ")
-
-                         */
 
                         // lock version
                         List<Runnable> lockTasks = getTasks(lockBST, allRandomNumbers.iterator(), load);
                         LinkedBlockingQueue<Runnable> lockWorkQueue = new LinkedBlockingQueue<>(lockTasks);
-                        BSTThreadPool lockPool = new BSTThreadPool(threads,threads, keepAliveTime, timeUnit, lockWorkQueue);
+                        BSTThreadPool lockPool = new BSTThreadPool(threads,threads,
+                                                        keepAliveTime, timeUnit, lockWorkQueue);
 
-                        long startTimeLock = System.nanoTime();
                         lockPool.prestartAllCoreThreads();
-
+                        long startTimeLock = System.nanoTime();
                         lockPool.shutdown();
 
-                        while(!lockPool.isTerminated()) {
+                        while(!lockPool.isTerminated());
 
-                        }
                         long endTimeLock = System.nanoTime();
                         var durationLock = (endTimeLock -startTimeLock)/Math.pow(10,9);
                         lockBSTTimes[threadIndex][treeIndex][loadNumber][iter] = durationLock;
@@ -180,11 +155,6 @@ public class Timing {
                                 ". Load: " + load + ". Iteration: " + iter +
                                 " Execution time: "  + durationLock + " seconds";
 
-                        /*
-                        if (lockPool.isTerminated())
-                            System.out.println(printStatementLock);
-                        else System.out.println("LockBST - Threadpool is not shutdown yet");
-                         */
                         // lock free version
                         List<Runnable> lfTasks = getTasks(lfBST, allRandomNumbers.iterator(), load);
                         LinkedBlockingQueue<Runnable> lfWorkQueue = new LinkedBlockingQueue<>(lfTasks);
@@ -192,21 +162,13 @@ public class Timing {
                         //System.out.println("Starting tasks.... in iteration: " +iter+ "\n");
                         BSTThreadPool lfPool = new BSTThreadPool(threads, threads, keepAliveTime, timeUnit, lfWorkQueue);
 
-                        long startTimeLF = System.nanoTime();
+
                         lfPool.prestartAllCoreThreads();
+                        long startTimeLF = System.nanoTime();
 
                         lfPool.shutdown();
-                        /*
-                        try{
-                            lfPool.awaitTermination(1000, TimeUnit.NANOSECONDS);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException("Not shutdown");
-                        }
-                         */
 
-                        while(!lfPool.isTerminated()){
-
-                        }
+                        while(!lfPool.isTerminated());
 
                         long endTimeLF = System.nanoTime();
                         var durationLF = (endTimeLF - startTimeLF)/Math.pow(10,9);
@@ -216,24 +178,33 @@ public class Timing {
                                 ". Load: " + load + ". Iteration: " + iter +
                                 " Execution time: "  + durationLF + " seconds";
 
-                        /*
-                        if (lfPool.isTerminated())
-                            System.out.println(printStatementLF);
-                        else System.out.println("Threadpool is not shtudown yet.");
-                         */
                     }
                 }
             }
         }
 
         System.out.println("All Executions Performed..");
-        serializeArray(lockBSTTimes); // TODO save other arrays with different file name.
+        serializeArray3d(serialBSTTimes, "/home/nandhan/serialBST.ser");
+        serializeArray(lfBSTTimes, "/home/nandhan/LockFreeBST.ser");
+        serializeArray(lockBSTTimes, "/home/nandhan/LockBST.ser"); // TODO save other arrays with different file name.
 
     }
 
-    private static void serializeArray(double[][][][] array){
+    private static void serializeArray3d(double[][][] array, String fileName) {
+
         try {
-            FileOutputStream fos = new FileOutputStream("/home/nandhan/array_result.ser");
+            FileOutputStream fos = new FileOutputStream(fileName);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(array);
+        }
+        catch (Exception e){
+            System.out.println("EXception occured");
+        }
+    }
+
+    private static void serializeArray(double[][][][] array, String fileName){
+        try {
+            FileOutputStream fos = new FileOutputStream(fileName);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(array);
         }
@@ -262,29 +233,6 @@ public class Timing {
              for (BST<Integer> tree: bst)
                  tree.insert(i);
          });
-
-        /*
-        bst.insert(tree_size/2); // root node
-
-        for (int i = 1; i <= tree_size;i ++) {
-            int x = ThreadLocalRandom.current().nextInt(1, tree_size);
-            bst.insert(x);
-        }
-
-         */
-    }
-
-    private static int[] getRandomArray(int start, int end, int size) {
-        int [] array = new int[size];
-
-        for (int i = start; i < end; i++) {
-            array[i] = ThreadLocalRandom.current().nextInt(start, end);
-        }
-
-        var numbers = ThreadLocalRandom.current().ints(size, start, end);
-        numbers.forEach((i) -> array[0] = i);
-
-        return array;
     }
 
     private static int[] loadModeArray(Load load) {
@@ -332,78 +280,6 @@ public class Timing {
 
         return type;
     }
-    private static int[] loadArray(int insertL, int searchL, int deleteL, int tree_size, Load load) {
-
-        if (searchL + deleteL + insertL != 100) {
-            throw new RuntimeException("Invalid Load balance");
-        }
-
-        //var elements = new int[n_operations];
-
-        //var elements = getRandomArray(1, tree_size, n_operations);
-
-        //var int_range = (int) insertL * n_operations;
-        //var search_range = (int) searchL * n_operations;
-        //var delete_range = (int) deleteL * n_operations;
-
-        /*
-        for (int i = 0; i < n_operations; i++) {
-            int x = ThreadLocalRandom.current().nextInt(1, tree_size);
-            elements[i] = x;
-        }
-
-         */
-
-        /*
-        write heavy = 50% insert, 0% search, 50% delete
-        read heavy = 9% insert, 80% search, 1% delete
-        mixed = 20% insert, 60% search, 20% delete
-         */
-
-        int[] type = new int[100];
-        int insertStart, insertEnd, searchStart, searchEnd, deleteStart, deleteEnd;
-
-
-        // TODO VERIFY INDICES.
-        if (load == Load.WRITE_HEAVY) {
-            insertStart = 0;
-            insertEnd = 50;
-            searchStart = 50;
-            searchEnd = 50;
-            deleteStart = 50;
-            deleteEnd = 100;
-
-        }
-        else if (load == Load.READ_HEAVY) {
-            insertStart = 0;
-            insertEnd = 9;
-            searchStart = 9;
-            searchEnd = 99;
-            deleteStart = 99;
-            deleteEnd = 100;
-        }
-        else {
-            insertStart = 0;
-            insertEnd = 20;
-            searchStart = 20;
-            searchEnd = 90;
-            deleteStart = 90;
-            deleteEnd = 100;
-        }
-
-        for ( int i = insertStart; i< insertEnd; i++) {
-            type[i] = 1;
-        }
-        for (int i = searchStart; i < searchEnd; i++) {
-            type[i] = 2;
-        }
-        for (int i = deleteStart; i < deleteEnd; i++){
-            type[i] = 3;
-        }
-
-        return type;
-    }
-
 
     private static List<Runnable> getTasks(BST<Integer> bst, Iterator<Integer> randomIterator, Load load) {
 
