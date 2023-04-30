@@ -24,12 +24,15 @@ public class Timing {
      */
 
     final static int n_iterations = 10;
-    final static int[] initial_tree_size = {100000, 200000, 500000}; /// todo revert to 10K, 20K, 100K
+    final static int[] initial_tree_size = {10000, 20000, 50000}; /// todo revert to 10K, 20K, 100K
     final static int n_operations = 15000; // todo revert to 15K
 
     final static int[] readHeavy = loadModeArray(Load.READ_HEAVY);
     final static int[] writeHeavy = loadModeArray(Load.WRITE_HEAVY);
     final static int[] mixed = loadModeArray(Load.MIXED);
+    final static int[] insertions = loadModeArray(Load.INSERTION);
+
+    final static int[] deletions = loadModeArray(Load.DELETION);
 
     final static int serialPoolSize = 1;
     final static int serialMaxPoolSize = 1;
@@ -43,7 +46,11 @@ public class Timing {
             return 0;
         else if (load == Load.READ_HEAVY)
             return 1;
-        else return 2;
+        else if (load == Load.MIXED)
+            return 2;
+        else if (load == Load.INSERTION)
+            return 3;
+        else return 4;
     }
 
     private static int getTreeIndex(int size) {
@@ -63,6 +70,8 @@ public class Timing {
     }
 
     public static void main(String[] args) {
+
+        System.out.println("Starting...");
 
 
         var processors = Runtime.getRuntime().availableProcessors();
@@ -259,12 +268,20 @@ public class Timing {
             deleteStart = 99;
             deleteEnd = 100;
         }
-        else {
+        else if (load == Load.MIXED) {
             insertStart = 0;
             insertEnd = 20;
             searchStart = 20;
             searchEnd = 90;
             deleteStart = 90;
+            deleteEnd = 100;
+        }
+        else if (load == Load.INSERTION) {
+            insertStart = 0;
+            insertEnd = searchStart = searchEnd = deleteStart = deleteEnd = 100;
+        }
+        else { // load == DELETION
+            insertStart = insertEnd = searchStart = searchEnd = deleteStart = 0;
             deleteEnd = 100;
         }
 
@@ -290,6 +307,10 @@ public class Timing {
             type = mixed;
         else if (load == Load.WRITE_HEAVY)
             type = writeHeavy;
+        else if (load == Load.INSERTION)
+            type = insertions;
+        else if (load == Load.DELETION)
+            type = deletions;
         else type = readHeavy;
 
         //IntStream randomNumbers = ThreadLocalRandom.current().ints(n_operations,1, tree_size );
@@ -302,21 +323,6 @@ public class Timing {
          */
         //tasks.add(() -> bst.insert(100));
 
-        /*
-        var randomIterator = randomNumbers.iterator();
-        var numbersArray = numbers.toArray();
-
-        for (Integer i: numbersArray) {
-            if (randomIterator.hasNext()) {
-                if (type[i] == 1) {
-                    tasks.add(() -> bst.insert(randomIterator.nextInt()));
-                }
-                else if (type[i] == 2)
-                    tasks.add(() -> bst.search(randomIterator.nextInt()));
-            }
-        }
-
-         */
         //var randomIterator = randomNumbers;
         numbers.forEach( (i) -> {//
 
@@ -331,7 +337,6 @@ public class Timing {
                     tasks.add(() -> bst.delete(nextNumber));
                 //else tasks.add(() -> bst.search(100));
             }
-
         });
 
         return tasks;
@@ -341,5 +346,7 @@ public class Timing {
 enum Load {
     WRITE_HEAVY,
     READ_HEAVY,
-    MIXED;
+    MIXED,
+    INSERTION,
+    DELETION
 }
