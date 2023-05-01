@@ -1,8 +1,19 @@
 package edu.iastate.cs527.bean;
 
+/**
+ * Data Type that holds node references.
+ * <p>Class has 4 fields:
+ *  1. ancestor
+ *  2. successor
+ *  3. parent
+ *  4. leaf
+ *  </p>
+ * @param <T>
+ *
+ * @author nandhan
+ */
 public class SeekRecord<T extends Number> {
 
-    // TODO- CHANGED type AtomicReference to normal
     public NodeLF<T> ancestor, successor, parent, leaf;
 
     public NodeLF<T> getAncestor() {

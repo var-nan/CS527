@@ -6,12 +6,22 @@ import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-// @ThreadSafe
+/**
+ * A mointor based implementation of Binary Search Tree.
+ * Performs all operations using synchronized blocks.
+ * <p>
+ * Class is ThreadSafe.
+ * </p>
+ *
+ * @param <T>
+ *
+ * @author nandhan
+ */
+@ThreadSafe
 public class LockBST<T extends Number> implements BST<T> {
 
     Node<T> root;
@@ -20,6 +30,12 @@ public class LockBST<T extends Number> implements BST<T> {
         this.root = new Node<>(key);
     }
 
+    /**
+     * Performs search operation for the given key in the tree.
+     * Called by insert() and delete().
+     * @param key - element
+     * @return -boolean true if key is present in the tree.
+     */
     @Override
     public synchronized boolean search(T key) {
         // allow concurrent search by threads? problem?
@@ -38,6 +54,14 @@ public class LockBST<T extends Number> implements BST<T> {
         return false;
     }
 
+    /**
+     * Inserts the given key to the tree. If the key is already present
+     * in the tree, method returns false, else perform key insertion and
+     * returns true. The tree do not allow duplicates.
+     *
+     * @param key
+     * @return - boolean
+     */
     @Override
     public synchronized boolean insert(T key) {
         if (search(key))
@@ -66,10 +90,24 @@ public class LockBST<T extends Number> implements BST<T> {
         return false;
     }
 
+    /**
+     * returns boolean true if the  integer value of two keys of type T are equal.
+     *
+     * @param key1
+     * @param key2
+     * @return boolean value based on comparision.
+     */
     private boolean equals(T key1, T key2) {
         return key1.intValue() == key2.intValue();
     }
 
+    /**
+     * Deletes the given key from the tree. Returns false, if key is
+     * not present in tree.
+     *
+     * @param key - element to delete from tree.
+     * @return - true if element is deleted, else false.
+     */
     @Override
     public synchronized boolean delete(T key) {
 
@@ -119,6 +157,13 @@ public class LockBST<T extends Number> implements BST<T> {
         return true;
     }
 
+    /**
+     * Returns minimum node for a given node to replace the current
+     * node. Helper method for delete().
+     *
+     * @param node
+     * @return - node to replace the given node.
+     */
     private Node<T> getMinimum(Node<T> node) {
         // pass right chiild.
         while( node.left != null)
@@ -126,6 +171,10 @@ public class LockBST<T extends Number> implements BST<T> {
         return node;
     }
 
+    /**
+     * Perform Traversal of the Tree.
+     * @return List of elements of type T in sorted (ascending) order.
+     */
     public synchronized List<T> traverse() {
         List<T> elements = new ArrayList<>();
         Node<T> current = this.root;
@@ -133,6 +182,12 @@ public class LockBST<T extends Number> implements BST<T> {
         return elements;
     }
 
+    /**
+     * Helper method for traverse().
+     *
+     * @param node - current node
+     * @param elements - List to populate with elements
+     */
     private void inOrderTraversal(Node<T> node, List<T> elements) {
         if (node!= null) {
             if (node.left != null)
@@ -143,6 +198,14 @@ public class LockBST<T extends Number> implements BST<T> {
         }
     }
 
+    /**
+     * Compares two given keys based on their integer values.
+     * If int value of key1 < int value of key2, returns true, else false.
+     *
+     * @param key1
+     * @param key2
+     * @return - (boolean) key1 < key2.
+     */
     private boolean compare(T key1, T key2) {
         return key1.intValue() < key2.intValue();
     }

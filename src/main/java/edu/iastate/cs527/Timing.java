@@ -14,6 +14,12 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+/**
+ * Measures the performance of various implemntations of Binary Search Tree
+ * under various scenarios. Writes the resuls to files (as serializable objects).
+ *
+ * @author nandhan
+ */
 public class Timing {
 
     /*
@@ -23,9 +29,9 @@ public class Timing {
     * 3. Profile Heap.
      */
 
-    final static int n_iterations = 10;
-    final static int[] initial_tree_size = {10000, 20000, 50000}; /// todo revert to 10K, 20K, 100K
-    final static int n_operations = 15000; // todo revert to 15K
+    final static int n_iterations = 5;
+    final static int[] initial_tree_size = {1000, 2000, 5000}; /// todo revert to 10K, 20K, 100K
+    final static int n_operations = 1500; // todo revert to 15K
 
     final static int[] readHeavy = loadModeArray(Load.READ_HEAVY);
     final static int[] writeHeavy = loadModeArray(Load.WRITE_HEAVY);
@@ -38,8 +44,6 @@ public class Timing {
     final static int serialMaxPoolSize = 1;
     final static long keepAliveTime = 1000; // todo change this.
     final static TimeUnit timeUnit = TimeUnit.MILLISECONDS; // TODO CHANGE THIS
-
-    //final static int[] nThreads;
 
     private static int getLoadNumber(Load load) {
         if (load == Load.WRITE_HEAVY)
@@ -141,7 +145,7 @@ public class Timing {
                             String printStatementSerial = "Serial BST - Tree size: "+ tree_size+", Iteration: "+iter + ", Execution: "
                                     + durationSerial;
 
-                            //System.out.println(printStatementSerial);
+                            System.out.println(printStatementSerial);
                         }
 
                         // lock version
@@ -163,6 +167,7 @@ public class Timing {
                         String printStatementLock = "LockBST - Threads: " + threads + ". Initial Tree Size: " + tree_size +
                                 ". Load: " + load + ". Iteration: " + iter +
                                 " Execution time: "  + durationLock + " seconds";
+                        System.out.println(printStatementLock);
 
                         // lock free version
                         List<Runnable> lfTasks = getTasks(lfBST, allRandomNumbers.iterator(), load);
@@ -187,6 +192,7 @@ public class Timing {
                                 ". Load: " + load + ". Iteration: " + iter +
                                 " Execution time: "  + durationLF + " seconds";
 
+                        System.out.println(printStatementLF);
                     }
                 }
             }
@@ -250,7 +256,7 @@ public class Timing {
         int insertStart, insertEnd, searchStart, searchEnd, deleteStart, deleteEnd;
 
 
-        // TODO VERIFY INDICES.
+        // VERIFY INDICES.
         if (load == Load.WRITE_HEAVY) {
             insertStart = 0;
             insertEnd = 50;
@@ -313,17 +319,13 @@ public class Timing {
             type = deletions;
         else type = readHeavy;
 
-        //IntStream randomNumbers = ThreadLocalRandom.current().ints(n_operations,1, tree_size );
-        //System.out.println("In loading function: thread " + Thread.currentThread().getName());
         IntStream numbers = ThreadLocalRandom.current().ints(n_operations, 1,100);
         /*
         1 - insert
         2 - search
         3 - delete
          */
-        //tasks.add(() -> bst.insert(100));
 
-        //var randomIterator = randomNumbers;
         numbers.forEach( (i) -> {//
 
             if (randomIterator.hasNext()) {
@@ -335,7 +337,6 @@ public class Timing {
                     tasks.add(() -> bst.search(nextNumber));
                 else if (type[i] == 3)
                     tasks.add(() -> bst.delete(nextNumber));
-                //else tasks.add(() -> bst.search(100));
             }
         });
 
