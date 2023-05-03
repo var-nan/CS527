@@ -75,6 +75,8 @@ public class Timing {
 
     public static void main(String[] args) {
 
+
+
         System.out.println("Starting...");
 
 
@@ -131,7 +133,7 @@ public class Timing {
                         randomNumbers.forEach(allRandomNumbers::add);
 
                         if (threads == 1) {
-                            IntStream randomNumbers2 = ThreadLocalRandom.current().ints(n_operations, 1, tree_size);
+                            //IntStream randomNumbers2 = ThreadLocalRandom.current().ints(n_operations, 1, tree_size);
                             List<Runnable> serialTasks = getTasks(serialBST, allRandomNumbers.iterator(), load);
                             LinkedBlockingQueue<Runnable> serialWorkQueue = new LinkedBlockingQueue<>(serialTasks);
                             BSTThreadPool serialPool = new BSTThreadPool(1, 1, keepAliveTime, timeUnit, serialWorkQueue);
@@ -142,7 +144,7 @@ public class Timing {
                             long endTimeSerial = System.nanoTime();
                             var durationSerial = (endTimeSerial-startTimeSerial)/Math.pow(10,9);
                             serialBSTTimes[treeIndex][loadNumber][iter] = durationSerial;
-                            String printStatementSerial = "Serial BST - Tree size: "+ tree_size+", Iteration: "+iter + ", Execution: "
+                            String printStatementSerial = "Serial- Tree size: "+ tree_size+",\t Iteration: "+iter + ",\t Execution: "
                                     + durationSerial;
 
                             System.out.println(printStatementSerial);
@@ -164,9 +166,9 @@ public class Timing {
                         var durationLock = (endTimeLock -startTimeLock)/Math.pow(10,9);
                         lockBSTTimes[threadIndex][treeIndex][loadNumber][iter] = durationLock;
 
-                        String printStatementLock = "LockBST - Threads: " + threads + ". Initial Tree Size: " + tree_size +
-                                ". Load: " + load + ". Iteration: " + iter +
-                                " Execution time: "  + durationLock + " seconds";
+                        String printStatementLock = "Lock - Threads: " + threads + "\t. Initial Tree Size: " + tree_size +
+                                ".\t Load: " + load + ".\t Iteration: " + iter +
+                                "\t Execution time: "  + durationLock + " seconds";
                         System.out.println(printStatementLock);
 
                         // lock free version
@@ -188,9 +190,9 @@ public class Timing {
                         var durationLF = (endTimeLF - startTimeLF)/Math.pow(10,9);
                         lfBSTTimes[threadIndex][treeIndex][loadNumber][iter] = durationLF;
 
-                        String printStatementLF = "LFBST- Threads: " + threads + ". Initial Tree Size: " + tree_size +
-                                ". Load: " + load + ". Iteration: " + iter +
-                                " Execution time: "  + durationLF + " seconds";
+                        String printStatementLF = "LFBST - Threads: " + threads + ".\t Initial Tree Size: " + tree_size +
+                                ".\t Load: " + load + ".\t Iteration: " + iter +
+                                "\t Execution time: "  + durationLF + " seconds";
 
                         System.out.println(printStatementLF);
                     }

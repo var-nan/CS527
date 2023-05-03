@@ -1,6 +1,7 @@
 package edu.iastate.cs527.impl;
 
 import edu.iastate.cs527.BST;
+import edu.iastate.cs527.Profiling;
 import edu.iastate.cs527.bean.NodeLF;
 import edu.iastate.cs527.bean.EdgeLF;
 import edu.iastate.cs527.bean.SeekRecord;
@@ -21,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @ThreadSafe
 public class LockFreeBST<T extends Number> implements BST<T> {
+
+    static Profiling.SeekRecordTime seekTime = new Profiling.SeekRecordTime();
 
     public enum Mode {
         INJECTION, // INJECTION MODE
@@ -150,7 +153,9 @@ public class LockFreeBST<T extends Number> implements BST<T> {
         NodeLF<T> leaf = null;
         while (true) {
             // obtain seek record.
+            seekTime.begin();
             var seekRecord = seek(key);
+            seekTime.commit();
 
             var parent = seekRecord.getParent();
             EdgeLF<T> child;
