@@ -75,10 +75,7 @@ public class Timing {
 
     public static void main(String[] args) {
 
-
-
         System.out.println("Starting...");
-
 
         var processors = Runtime.getRuntime().availableProcessors();
         var nelements = (int) (Math.log(processors)/Math.log(2)) + 1;
@@ -200,7 +197,7 @@ public class Timing {
             }
         }
 
-        System.out.println("All Executions Performed..");
+        System.out.println("All Executions Completed..");
         serializeArray3d(serialBSTTimes, "/home/nandhan/serialBST.ser");
         serializeArray(lfBSTTimes, "/home/nandhan/LockFreeBST.ser");
         serializeArray(lockBSTTimes, "/home/nandhan/LockBST.ser"); // TODO save other arrays with different file name.
@@ -215,7 +212,7 @@ public class Timing {
             oos.writeObject(array);
         }
         catch (Exception e){
-            System.out.println("EXception occured");
+            System.out.println("Exception occured");
         }
     }
 
@@ -226,7 +223,7 @@ public class Timing {
             oos.writeObject(array);
         }
         catch (Exception e){
-            System.out.println("EXception occured");
+            System.out.println("Exception occured");
         }
     }
 

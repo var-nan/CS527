@@ -1,7 +1,7 @@
 package edu.iastate.cs527.impl;
 
 import edu.iastate.cs527.BST;
-import edu.iastate.cs527.Profiling;
+import edu.iastate.cs527.ProfileEvents;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class SerialBST<T extends Number> implements BST<T> {
 
-    Profiling.SearchTime searchTime = new Profiling.SearchTime();
+    ProfileEvents.SearchTime searchTime = new ProfileEvents.SearchTime();
 
     // create root node
     Node<T> root;

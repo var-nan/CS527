@@ -2,6 +2,7 @@ package edu.iastate.cs527.impl;
 
 import edu.iastate.cs527.BST;
 import edu.iastate.cs527.BSTThreadPool;
+import edu.iastate.cs527.ProfileEvents;
 import net.jcip.annotations.ThreadSafe;
 
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit;
  */
 @ThreadSafe
 public class LockBST<T extends Number> implements BST<T> {
+
+    ProfileEvents.LockSearchTime searchTime = new ProfileEvents.LockSearchTime();
 
     Node<T> root;
 
@@ -64,7 +67,12 @@ public class LockBST<T extends Number> implements BST<T> {
      */
     @Override
     public synchronized boolean insert(T key) {
-        if (search(key))
+
+        searchTime.begin();
+        boolean find = search(key);
+        searchTime.commit();
+
+        if (find)
             return false;
 
         var current = root;
